@@ -4,6 +4,10 @@ server {
         rewrite ^ https://$server_name$request_uri? permanent;
 }
 
+upstream transmission {
+    server localhost:9091;
+}
+
 server {
         listen 443 ssl;
         ### Change the following line to match your website name
@@ -60,6 +64,37 @@ server {
                 return 444;
         }
 
+
+      location ^~ /transmission/ {
+          proxy_http_version 1.1;
+          proxy_set_header Connection "";
+          proxy_pass_header X-Transmission-Session-Id;
+
+          location /transmission/rpc {
+              proxy_pass http://transmission;
+          }
+
+          location /transmission/web/ {
+              proxy_pass http://transmission;
+          }
+
+          location /transmission/upload {
+              proxy_pass http://transmission;
+          }
+
+          location /transmission/web/style/ {
+              alias /usr/share/transmission/web/style/;
+          }
+
+          location /transmission/web/javascript/ {
+              alias /usr/share/transmission/web/javascript/;
+          }
+
+          location /transmission/web/images/ {
+              alias /usr/share/transmission/web/images/;
+          }
+      }
+
         location ~* ^/(?:\.|conf|data/(?:files|personal|logs|plugins|tmp|cache)|plugins/editor.zoho/agent/files) {
                 deny all;
         }
@@ -89,7 +124,7 @@ server {
                 fastcgi_param  SERVER_ADDR        $server_addr;
                 fastcgi_param  SERVER_PORT        $server_port;
                 fastcgi_param  SERVER_NAME        $server_name;
-                
+
                 try_files $uri =404;
                 fastcgi_pass unix:/var/run/php5-fpm.sock;
         }
